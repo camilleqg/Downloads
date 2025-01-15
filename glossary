@@ -1,0 +1,11 @@
+ev: short form for events
+dense: denotes the temporal density of the points (eg. 1dense is 100 density while .25dense is 25% density)
+n0: this is on all the datafiles and just indicates that there is no additional noise included (meaning that every photon belongs to an event)
+
+labels_ prefix: these are the randomly assigned (by the simulation) integer labels given to each photon to indicate which event they all belong to
+sources_ prefix: these are the coordinates for the sources of each event (not actually used in the kmeans algorithm, i have them for visualization purposes)
+
+The files that contain coordinates, so with no prefix and with sources_ prefix all have the same header: x[px]	y[px]	t[s]
+The labels_ files have the following header (just one column): 'labels'
+
+all the photons are in order for all the corresponding files. Meaning that the coordinates and label at index 0 (first row) of files 10ev_.5dense_n0 and labels_10ev_.5dense_n0 refer to the same photon. 
