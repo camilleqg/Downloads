@@ -63,19 +63,19 @@ def loss(true_labels, network_labels):
 
     beginning = 0 
     for i in range(len(gaps)):
-        misidentified=0
-        end = break_indices[i]
-        chunk = network_labels[beginning:end]
-        chunk_modes = modded_mode(chunk) # find the modes 
-        all_modes.extend(chunk_modes) # add to master list of modes 
+        misidentified=0 # number of misidentified photons per cluster starts at 0
+        end = break_indices[i] # determine where the cluster ends 
+        chunk = network_labels[beginning:end] 
+        chunk_modes = modded_mode(chunk) # find the modes, these are the ai labels given to the cluster, what events are dominant here 
+        all_modes.extend(chunk_modes) # add to master list of modes, this indicates when each event label shows up (how often)
         if len(chunk_modes) > 1: 
-            event_splits += 1  # add the number of splits to the total amount of splits 
+            event_splits += 1  # add one to a split. if there is more than one ai label in this list, theres a split cluster 
 
         chunk_modes_set = chunk_modes # change the list of modes into a set to increase efficiency
         misidentified = sum(1 for item in chunk if item not in chunk_modes_set) # counts the number of photons not included in the main event labels (modes)
         err_fraction = misidentified/gaps[i] # calculates the fraction of misidentified over number of photons in the event 
         all_misidentified.append(err_fraction) # adds the misidentification error to array 
-        beginning = break_indices[i]
+        beginning = break_indices[i] # adjust the beginning of the next chunk
     
     avg_misidentified = np.average(all_misidentified)
     counter = Counter(all_modes)
@@ -91,15 +91,31 @@ def loss(true_labels, network_labels):
     # the mode modes here refer to the labels given to the events by the ai, not the true labels (for reference) 
     return event_splits, all_misidentified, avg_misidentified, mode_modes, combo_frac, avg_ev_in_combo
     
+
+def ai_based_loss(true_labels, network_labels):
+    '''This function does the same thing as the previous loss function, but does it in such a way 
+    that the ai labels are ordered and the clustering is based off of these. it should give the same 
+    or similar results to the original loss function'''
     
-    # print(unfiltered_counts)
-    # print(mode_modes)
-    # print(unfiltered_counts.values())
-    # print(avg_combination)
+    # initialize master list of dominant true event labels 
+    # initialize number of combinations total (0)
+    # initalize number of events in combinations (0)
+    #
+    # sort the labels based on the network assigned labels 
+    # 
+    # find the breaks in all the ai labels as well as gap sizes 
+    # 
+    # for each chunk: 
+    #   identify the dominant true event labels
+    #   add them to a master list 
+    #   combination: note if there are multiple dominant event labels 
+    #       if there are multiple, add this to number of combinations
+    #       add the number of events involved in the combination (length of list of dominant labels)
+    #       to total (will be averaged out later)
 
-
-    # print(all_misidentified)
-    # print(gaps)
+    #   misidentified photons: note what fraction of labels do not match any of the dominant labels 
+    #   
+    #   split events: check for repeats in the 
 
 def labelmaker(events, density, noise, folder = None): 
     folder = folder + '/'
