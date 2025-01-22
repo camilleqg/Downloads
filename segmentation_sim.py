@@ -269,7 +269,7 @@ def labelmaker(events, density, noise, folder = None):
     return datafile, labelfile, sourcefile, ai_labelfile, clusterfile
 
 
-def new_parallel_sim(events, num_cores, noise, density ='1', folder = None, mix=False, verbose = False, eventscale=1, spacesigma=0.00021233045007200478, start_time=-1, start_x=-1, start_y=-1, dataSaveID = True, file=None):
+def new_parallel_sim(events, noise, num_cores=1, density ='1', folder = None, mix=False, verbose = False, eventscale=1, spacesigma=0.00021233045007200478, start_time=-1, start_x=-1, start_y=-1, dataSaveID = True, file=None):
     
     datafile, labelfile, sourcefile, ai_labelfile, clusterfile = labelmaker(events, density, noise, folder)
     
@@ -335,7 +335,7 @@ subparsers = parser.add_subparsers(dest="command", help = "Available commands")
 
 sim_parser = subparsers.add_parser("simulate", help = "Simulate neutron events, output results into terminal")
 sim_parser.add_argument("-e", "--events", type = int, required=True, help="Number of neutron events to simulate")
-sim_parser.add_argument("-c", "--cores", type=int, required=True, help="Number of cpu cores to be used")
+sim_parser.add_argument("-c", "--cores", type=int, default=1, help="Number of cpu cores to be used")
 sim_parser.add_argument("-n", "--noise", type = int, required = True, help="Number of noise photons to include in the data")
 sim_parser.add_argument("-d", "--density", type = str, default = '1', help="Density of events in time and space, from 0-1, needs to be a string with no leading zeroes")
 sim_parser.add_argument("-f", "--folder", type =str, default = None, help = "Folder in which to save the datafiles.")
@@ -358,7 +358,7 @@ args = parser.parse_args()
 
 # call the function based on subcommand
 if args.command == "simulate": 
-    new_parallel_sim(events=args.events, num_cores=args.cores, noise=args.noise, density=args.density, folder=args.folder, mix=args.mix, verbose=args.verbose, eventscale=args.eventscale, spacesigma=args.spacesigma, start_time=args.starttime, start_x=args.startx, start_y=args.starty, dataSaveID=args.datafile, file=args.file)
+    new_parallel_sim(events=args.events, noise=args.noise, num_cores=args.cores, density=args.density, folder=args.folder, mix=args.mix, verbose=args.verbose, eventscale=args.eventscale, spacesigma=args.spacesigma, start_time=args.starttime, start_x=args.startx, start_y=args.starty, dataSaveID=args.datafile, file=args.file)
 elif args.command == "read": 
     data_reader(filename=args.filename)
 else: 
