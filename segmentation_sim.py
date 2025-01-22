@@ -173,13 +173,6 @@ def sim(events, noise, total_events, mix=False, verbose = False, eventscale=1, s
         master_labels.append(event_labels)
         master_sources.append([start_x, start_y, start_time])
     
-    # NORMALIZATION HERE 
-    # for i in range(noise): 
-    #     coords = [0]*3 
-    #     coords[0] = rng.uniform(0, 1)
-    #     coords[1] = rng.uniform(0, 1) 
-    #     coords[2] = rng.uniform(0, 1)
-    #     master_data.append(coords)
     
     for i in range(noise): 
         coords = [0]*3
@@ -251,7 +244,8 @@ def parallel_sim(events, num_cores, noise, mix=False, verbose = False, eventscal
             writer.writerows(sources)
         
 def labelmaker(events, density, noise, folder = None): 
-    folder = folder + '/'
+    if folder: 
+        folder = folder + '/'
 
     datafile = str(events) + 'ev_' + str(density) + 'dense_n' + str(noise) + '.csv'
     clusterfile = str(events) + 'ev_' + str(density) + 'dense_n' + str(noise) + '_centroids' + '.csv'
@@ -269,10 +263,21 @@ def labelmaker(events, density, noise, folder = None):
     return datafile, labelfile, sourcefile, ai_labelfile, clusterfile
 
 
-def new_parallel_sim(events, noise, num_cores=1, density ='1', folder = None, mix=False, verbose = False, eventscale=1, spacesigma=0.00021233045007200478, start_time=-1, start_x=-1, start_y=-1, dataSaveID = True, file=None):
+def new_parallel_sim(events, noise, num_cores=1, density ='1', folder = None, mix=False, verbose = False, eventscale=1, spacesigma=0.00021233045007200478, start_time=-1, start_x=-1, start_y=-1, dataSaveID = None, file=None):
     
     datafile, labelfile, sourcefile, ai_labelfile, clusterfile = labelmaker(events, density, noise, folder)
     
+    if dataSaveID: 
+        datafile = str(dataSaveID) + '.csv'
+        labelfile = 'labels_' + datafile
+        sourcefile = 'sources_' + datafile
+        if folder:
+            datafile = str(folder) + '/' + datafile 
+            labelfile = str(folder) + '/' + labelfile
+            sourcefile = str(folder) + '/' + sourcefile 
+        
+     
+
     assert 0 < num_cores < mp.cpu_count()
     runs_per_core = events//num_cores
     n_per_core = noise//num_cores//events
@@ -294,21 +299,21 @@ def new_parallel_sim(events, noise, num_cores=1, density ='1', folder = None, mi
                 labels.extend(core_labels)
                 sources.extend(core_sources)
         
-    if dataSaveID: 
-        columns = ['x[px]', 'y[px]', 't[s]']
-        with open(datafile, mode = 'w', newline='') as wfile: 
-            writer = csv.writer(wfile)
-            writer.writerow(columns)
-            writer.writerows(event_data)
-        with open(labelfile, mode = 'w', newline = '') as wfile: 
-            writer = csv.writer(wfile)
-            writer.writerow(['labels'])
-            for item in labels: 
-                writer.writerow([item])
-        with open(sourcefile, mode = 'w', newline = '') as wfile: 
-            writer = csv.writer(wfile)
-            writer.writerow(columns)
-            writer.writerows(sources)
+ 
+    columns = ['x[px]', 'y[px]', 't[s]']
+    with open(datafile, mode = 'w', newline='') as wfile: 
+        writer = csv.writer(wfile)
+        writer.writerow(columns)
+        writer.writerows(event_data)
+    with open(labelfile, mode = 'w', newline = '') as wfile: 
+        writer = csv.writer(wfile)
+        writer.writerow(['labels'])
+        for item in labels: 
+            writer.writerow([item])
+    with open(sourcefile, mode = 'w', newline = '') as wfile: 
+        writer = csv.writer(wfile)
+        writer.writerow(columns)
+        writer.writerows(sources)
 
 
 
@@ -335,7 +340,7 @@ subparsers = parser.add_subparsers(dest="command", help = "Available commands")
 
 sim_parser = subparsers.add_parser("simulate", help = "Simulate neutron events, output results into terminal")
 sim_parser.add_argument("-e", "--events", type = int, required=True, help="Number of neutron events to simulate")
-sim_parser.add_argument("-c", "--cores", type=int, default=1, help="Number of cpu cores to be used")
+sim_parser.add_argument("-c", "--cores", type=int, default=1, help="Number of cores to be used, default is 1 (non parallelized)")
 sim_parser.add_argument("-n", "--noise", type = int, required = True, help="Number of noise photons to include in the data")
 sim_parser.add_argument("-d", "--density", type = str, default = '1', help="Density of events in time and space, from 0-1, needs to be a string with no leading zeroes")
 sim_parser.add_argument("-f", "--folder", type =str, default = None, help = "Folder in which to save the datafiles.")
@@ -346,7 +351,7 @@ sim_parser.add_argument("-s", "--spacesigma", type = float, default = 0.00021233
 sim_parser.add_argument("-st", "--starttime", type = float, default = -1, help = "Start time for all events. Default value is randomly generated.")
 sim_parser.add_argument("-sx", "--startx", type = float, default = -1, help = "Starting x coordinate for all events. Default value is randomly generated.")
 sim_parser.add_argument("-sy", "--starty", type = float, default = -1, help = "Starting y coordinate for all events. Default value is randomly generated.")
-sim_parser.add_argument("-df", "--datafile", type = None, default = True, help = "Text file name for saving data. Truth file will have the same name but prefixed with truth_")
+sim_parser.add_argument("-df", "--datafile", type = str, default = None, help = "Text file name for saving data. Truth file will have the same name but prefixed with truth_")
 sim_parser.add_argument("-jf", "--file", type = None, default = None, help = "Name of json file containing all optional arguments as well as parameters for photon decay distribution and distribution of number of photons per event.")
 
 read_parser = subparsers.add_parser("read", help="Read and print csv file, only need the name of the data file")
@@ -354,7 +359,7 @@ read_parser.add_argument("-id", "--filename", type=str, required=True, help="Fil
 
 args = parser.parse_args()
 
-#events, num_cores, noise, density ='1', folder = None, mix=False, verbose = False, eventscale=1, spacesigma=0.00021233045007200478, start_time=-1, start_x=-1, start_y=-1, dataSaveID = True, file=None
+
 
 # call the function based on subcommand
 if args.command == "simulate": 
