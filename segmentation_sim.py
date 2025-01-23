@@ -161,13 +161,12 @@ def sim(events, noise, total_events, mix=False, verbose = False, eventscale=1, s
         if start_y == -1: 
             start_y = random.uniform(0, detector_sidelength)
 
-    
-    # can make this simpler, do it later 
 
         for j in range(num_photons): 
             coords = [0]*3
-            coords[0] = (generate_coords(start_x, start_y, sigma2=spacesigma)[0])
-            coords[1] = (generate_coords(start_x, start_y, sigma2=spacesigma)[1])
+            gen = generate_coords(start_x, start_y, sigma2=spacesigma)
+            coords[0] = gen[0]
+            coords[1] = gen[1]
             coords[2] = (generate_time(file = file) + start_time)
             master_data.append(coords)
         
