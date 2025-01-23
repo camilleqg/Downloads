@@ -376,4 +376,13 @@ else:
 
 # 100 cases for 100 events and elbow method for each, at 50% temporal and 100% temporal 
 # - see what this looks like. the hard limit on the k value could be affecting the errors
-    
+
+
+## REGENERATING DATA WITH 1 CORE 
+
+# nums = [10, 100]
+# densities = ['.25', '.5', '.75', '1']
+
+# for num in nums: 
+#     for dense in densities: 
+#         new_parallel_sim(events = num, density = dense, noise = 0)
