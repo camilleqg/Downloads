@@ -70,10 +70,9 @@ def total_photons(scale, file = None):
 def generate_coords(mu_x, mu_y, sigma2=0.00021233045007200478): 
     ''' This function will generate a set of coordinates for x and y, based on the centre of the event (input). It will only generate one at a time
     no need for custom functions here because numpy already has a sampler for gaussian distribution'''
-    num_photons = 1
-    x_coord = np.random.normal(loc = mu_x, scale = sigma2, size = num_photons)
-    y_coord = np.random.normal(loc = mu_y, scale = sigma2, size = num_photons)
-    return x_coord[0], y_coord[0]
+    x_coord = random.gauss(mu_x, sigma2)
+    y_coord = random.gauss(mu_y, sigma2)
+    return x_coord, y_coord
 
 # generate time coordinate for one photon
 
@@ -105,8 +104,8 @@ def generate_time(file):
     # loop through until we get an accepted value 
     time_final = 0 
     while time_final == 0: 
-        time_guess = np.random.uniform(time_min, time_max)
-        photons_guess = np.random.uniform(0, max_photons)
+        time_guess = random.uniform(time_min, time_max)
+        photons_guess = random.uniform(0, max_photons)
         if photons_guess <= decayfit(time_guess, file = file):
             time_final = time_guess 
             
@@ -162,7 +161,9 @@ def sim(events, noise, total_events, mix=False, verbose = False, eventscale=1, s
         if start_y == -1: 
             start_y = random.uniform(0, detector_sidelength)
 
-        
+    
+    # can make this simpler, do it later 
+
         for j in range(num_photons): 
             coords = [0]*3
             coords[0] = (generate_coords(start_x, start_y, sigma2=spacesigma)[0])
