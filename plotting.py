@@ -6,26 +6,45 @@ import csv
 from scipy.stats import gaussian_kde
 from collections import Counter 
 
-def labelmaker(events, density, noise, folder = None): 
-    folder = folder + '/'
+def labelmaker(events, density, noise, filename = None, folder = None): 
+    if folder: 
+        folder = folder + '/'
 
-    datafile = str(events) + 'ev_' + str(density) + 'dense_n' + str(noise) + '.csv'
-    clusterfile = str(events) + 'ev_' + str(density) + 'dense_n' + str(noise) + '_centroids' + '.csv'
-    ai_labelfile = str(events) + 'ev_' + str(density) + 'dense_n' + str(noise) + '_results' + '.csv'
-    labelfile = 'labels_' + str(events) + 'ev_' + str(density) + 'dense_n' + str(noise) + '.csv'
-    sourcefile = 'sources_' + str(events) + 'ev_' + str(density) + 'dense_n' + str(noise) + '.csv'
+    if filename: 
+        datafile = str(filename) 
+    else: 
+        datafile = str(events) + 'ev_' + str(density) + 'dense_n' + str(noise)
+    
+    labelfile = 'labels_' + datafile + '.csv'
+    sourcefile = 'sources_' + datafile + '.csv'
+    ai_labelfile = datafile + '_results' + '.csv'
+    clusterfile = datafile + '_centroids' + '.csv'
 
     if folder: 
-        datafile = str(folder)+ datafile
-        clusterfile = str(folder) + clusterfile 
-        ai_labelfile = str(folder) + ai_labelfile
-        labelfile = str(folder) + labelfile 
-        sourcefile = str(folder) + sourcefile 
-    
+        datafile = folder + datafile 
+        clusterfile = folder + clusterfile 
+        ai_labelfile = folder + ai_labelfile 
+        labelfile = folder + labelfile 
+        sourcefile = folder + sourcefile 
+
     return datafile, labelfile, sourcefile, ai_labelfile, clusterfile
 
-def readfiles(events, density, noise, folder = None): 
-    datafile, labelfile, sourcefile, ai_labelfile, clusterfile = labelmaker(events, density, noise, folder)
+def readfiles(datafile, labelfile, sourcefile): 
+
+    columns = ['x[px]', 'y[px]', 't[s]']
+    
+    dataread = pd.read_csv(datafile) 
+    data = np.array(dataread[columns])
+    
+    labelread = pd.read_csv(labelfile)
+    labels = np.array(labelread['labels'])
+
+    sourceread = pd.read_csv(sourcefile) 
+    sources = np.array(sourceread[columns])
+
+    return data, labels, sources 
+
+def readai(datafile, labelfile, sourcefile, ai_labelfile, clusterfile):
     columns = ['x[px]', 'y[px]', 't[s]']
     
     dataread = pd.read_csv(datafile) 
@@ -69,8 +88,6 @@ def modded_mode(array):
     result = [key for key, count in counts.items() if count > threshold]
     return result 
 
-data, labels, sources, ai_labels, clusters = readfiles(10, '.25', 0, '10events')
-
 def mistakes(labels, ai_labels, data): 
     correct = []
     incorrect = []
@@ -93,28 +110,127 @@ def mistakes(labels, ai_labels, data):
 
     return np.array(correct), np.array(incorrect), np.array(correct_labels)
 
-maxtime = np.max(data[:,2])
-maxy = np.max(data[:,1])
-maxx = np.max(data[:,0])
+def translate(axes): 
+    coords = ['x','y','time']
 
-## scatter with colour code based on labels 
-plt.figure()
-plt.scatter(data[:,2], data[:,1], c = ai_labels, s = 20, cmap='tab20')
-plt.scatter(sources[:,2], sources[:,1], c = 'black', s= 35, marker='x')
-plt.title('Time vs Y of 10 events .25 dense true sources', wrap =True)
-plt.ylabel('Y coordinates (m)')
-plt.xlabel('Time (s)')
-#plt.xlabel('X coordinates (m)')
-plt.savefig('kmeans_v2_10ev_n0_.25dense_time.png')
+    return coords[axes[0]], coords[axes[1]]
 
-# scatter comparison of true sources and cluster centroids 
-plt.figure()
-plt.scatter(sources[:,2], sources[:,1], c = 'black', s= 35, marker='x')
-plt.scatter(clusters[:,2], clusters[:,1], c = 'blue', s = 35, marker = 'o')
-plt.title('Sources vs Cluster centroids for 10 events .25 dense', wrap = True)
-plt.ylabel('Y coordinates (m)')
-plt.xlabel('Time (s)')
-plt.savefig('kmeans_v2_sourcesvscentroids_n0_.25dense_time.png')
+def mono(data, axes, title=None, events=None, density=None, noise=None, figname=None, savefolder = None):
+    indep, dep = translate(axes)
+    if title: 
+        title = str(title)
+    else: 
+        title = f'Monochrome scatterplot of {events} events at {density} density and {noise} noise photons, {dep} vs {indep}'
+
+    if figname: 
+        figname = str(figname) + 'png'
+    else: 
+        figname = f'mono_{indep}_vs_{dep}_{events}ev_{density}dense_n{noise}.png'
+    
+    if savefolder: 
+        figname = str(savefolder) + '/' + figname 
+
+    plt.figure()
+    plt.tight_layout()
+    plt.scatter(data[:,axes[0]], data[:,axes[1]])
+    plt.title(title)
+    plt.ylabel(f'{dep} coordinates')
+    plt.xlabel(f'{indep} coordinates')
+    plt.savefig(figname)
+
+    print(f"Figure saved under {figname}")
+    
+def galaxy(data, axes, title=None, events=None, density=None, noise=None, figname=None, savefolder = None):
+
+    indep, dep = translate(axes)
+    if title: 
+        title = str(title)
+    else: 
+        title = f'Galaxy map of {events} events at {density} density and {noise} noise photons, {dep} vs {indep}'
+
+    if figname: 
+        figname = str(figname) + 'png'
+    else: 
+        figname = f'galaxy_{indep}_vs_{dep}_{events}ev_{density}dense_n{noise}.png'
+    
+    if savefolder: 
+        figname = str(savefolder) + '/' + figname
+
+    plt.figure()
+    plt.tight_layout()
+    plt.hist2d(data[:,axes[0]], data[:,axes[1]], bins = (100,100), cmap='hot')
+    plt.colorbar()
+    plt.title(title)
+    plt.ylabel(f'{dep} coordinates')
+    plt.xlabel(f'{indep} coordinates')
+    plt.savefig(figname)
+
+def colourcoded(data, ai_labels, axes, title=None, events=None, density=None, noise=None, figname=None, savefolder = None):
+    indep, dep = translate(axes)
+    if title: 
+        title = str(title)
+    else: 
+        title = f'K-means colour coded scatter plot of {events} events at {density} density and {noise} noise photons, {dep} vs {indep}'
+    if figname: 
+        figname = str(figname) + 'png'
+    else: 
+        figname = f'colourcode_{indep}_vs_{dep}_{events}ev_{density}dense_n{noise}.png'
+    
+    if savefolder: 
+        figname = str(savefolder) + '/' + figname
+    
+    plt.figure()
+    plt.tight_layout()
+    plt.scatter(data[:,axes[0]], data[:,axes[1]], c = ai_labels, s = 20, cmap = 'tab20')
+    plt.title(title)
+    plt.ylabel(f'{dep} coordinates')
+    plt.xlabel(f'{indep} coordinates')
+    plt.savefig(figname)
+
+def centroidVsource(data, ai_labels, sources, clusters, axes, title=None, events=None, density=None, noise=None, figname=None, savefolder = None):
+    '''Just like colourcoded but with the true sources and ai cluster centroids compared'''
+    indep, dep = translate(axes)
+    if title: 
+        title = str(title)
+    else: 
+        title = f'K-means colour coded scatter plot with true sources and cluster centroids of {events} events at {density} density and {noise} noise photons, {dep} vs {indep}'
+    if figname: 
+        figname = str(figname) + 'png'
+    else: 
+        figname = f'centroidVsource_{indep}_vs_{dep}_{events}ev_{density}dense_n{noise}.png'
+    
+    if savefolder: 
+        figname = str(savefolder) + '/' + figname
+
+    plt.figure()
+    plt.scatter(data[:,axes[0]], data[:,axes[1]], c = ai_labels, s = 20, cmap = 'tab20')
+    plt.scatter(sources[:,axes[0]], sources[:,axes[1]], c = 'black', s = 35, marker='x', label = "True Sources")
+    plt.scatter(clusters[:,axes[0]], clusters[:,axes[1]], c = 'black', s = 35, marker = 'o', label = 'AI Cluster Centroids')
+    plt.title(title)
+    plt.ylabel(f'{dep} coordinates')
+    plt.xlabel(f'{indep} coordinates')
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig(figname)
+
+# ## scatter with colour code based on labels 
+# plt.figure()
+# plt.scatter(data[:,2], data[:,1], c = ai_labels, s = 20, cmap='tab20')
+# plt.scatter(sources[:,2], sources[:,1], c = 'black', s= 35, marker='x')
+# plt.title('Time vs Y of 10 events .25 dense true sources', wrap =True)
+# plt.ylabel('Y coordinates (m)')
+# plt.xlabel('Time (s)')
+# #plt.xlabel('X coordinates (m)')
+# plt.savefig('kmeans_v2_10ev_n0_.25dense_time.png')
+
+# # scatter comparison of true sources and cluster centroids 
+# plt.figure()
+# plt.scatter(sources[:,2], sources[:,1], c = 'black', s= 35, marker='x')
+# plt.scatter(clusters[:,2], clusters[:,1], c = 'blue', s = 35, marker = 'o')
+# plt.title('Sources vs Cluster centroids for 10 events .25 dense', wrap = True)
+# plt.ylabel('Y coordinates (m)')
+# plt.xlabel('Time (s)')
+# plt.savefig('kmeans_v2_sourcesvscentroids_n0_.25dense_time.png')
 
 
 # scatter 
@@ -135,15 +251,15 @@ plt.savefig('kmeans_v2_sourcesvscentroids_n0_.25dense_time.png')
 # plt.xlabel('X coordinates (m)')
 # plt.savefig('20ev_realt_hist.png')
 
-# black background? -> density c
+#black background? -> density c
 # plt.figure() 
 # # cbar = plt.colorbar(hist[3], pad=0.01)
 # # cbar.set_label('Density')
-# plt.hist2d(data[:,0], data[:,1], bins = (100,100), cmap='hot')
+# plt.hist2d(data[:,2], data[:,1], bins = (100,100), cmap='hot')
 # plt.colorbar()
 # plt.xlabel("X coordinates")
 # plt.ylabel("Y coordinates")
-# plt.title("10 events, x vs y view")
+# plt.title("10 events, time vs y view")
 # plt.tight_layout()
 # plt.savefig('10evtest.png')
 
@@ -195,3 +311,35 @@ plt.savefig('kmeans_v2_sourcesvscentroids_n0_.25dense_time.png')
 # plt.ylabel('X coordinates')
 # plt.xlabel('Time coordinates')
 # plt.savefig('misID_tx_10ev_.5dense.png')
+
+
+
+def plot(plottype, axes, folder = None, filename = None, title = None, events = None, density = None, noise = None, savefolder=None, figname=None):
+    '''This function will plot the data in one of the following formats: 
+    0. mono: monochrome scatter plot, no other indicators
+    1. galaxy: black background with density based colour gradient
+    2. colourcoded: scatter plot with points coloured based on the ai label
+    3. centroidVsource: scatter plot that shows the cluster centroids vs the source coordinates, colour coded like option 2
+    4. 3D: 3D colour coded plot 
+    5. misidentified: highlights misidentified photons in red 
+    '''
+
+    types = ['mono', 'galaxy', 'colourcoded', 'centroidVsource', '3D', 'misidentified']
+
+    # generate datafile name 
+    datafile, labelfile, sourcefile, ai_labelfile, clusterfile = labelmaker(events, density, noise, filename, folder) 
+    # should only read the data that it needs 
+    val = types[str(plottype)]
+    if val > 1: 
+        data, labels, sources, ai_labels, clusters = readai(datafile, labelfile, sourcefile, ai_labelfile, clusterfile)
+    else: 
+        data, labels, sources = readfiles(datafile, labelfile, sourcefile)
+    
+    if str(plottype) == 'mono': 
+        mono(data, axes, title, events, density, noise, figname, savefolder)
+    elif str(plottype) == 'galaxy': 
+        galaxy(data, axes, title, events, density, noise, figname, savefolder)
+    elif str(plottype) == 'colourcoded': 
+        colourcoded(data, ai_labels, axes, title, events, density, noise, figname, savefolder)
+    
+    
