@@ -5,8 +5,10 @@ from mpl_toolkits.mplot3d import Axes3D
 import csv 
 from scipy.stats import gaussian_kde
 from collections import Counter 
+import argparse
 
 def labelmaker(events, density, noise, filename = None, folder = None): 
+    '''creates labels based on my naming convention for different files, keeps it consistent and easy'''
     if folder: 
         folder = folder + '/'
 
@@ -30,7 +32,7 @@ def labelmaker(events, density, noise, filename = None, folder = None):
     return datafile, labelfile, sourcefile, ai_labelfile, clusterfile
 
 def readfiles(datafile, labelfile, sourcefile): 
-
+    '''data reader and simplifier for files that haven't been passed through the algorithm'''
     columns = ['x[px]', 'y[px]', 't[s]']
     
     dataread = pd.read_csv(datafile) 
@@ -45,6 +47,7 @@ def readfiles(datafile, labelfile, sourcefile):
     return data, labels, sources 
 
 def readai(datafile, labelfile, sourcefile, ai_labelfile, clusterfile):
+    '''file reader and data simplifier for data thats been through the algorithm'''
     columns = ['x[px]', 'y[px]', 't[s]']
     
     dataread = pd.read_csv(datafile) 
@@ -89,6 +92,7 @@ def modded_mode(array):
     return result 
 
 def mistakes(labels, ai_labels, data): 
+    '''sorts out misidentified photons and outputs the correct, incorrect, and correct labels to be used later in the misID function'''
     correct = []
     incorrect = []
     correct_labels = []
@@ -116,6 +120,7 @@ def translate(axes):
     return coords[axes[0]], coords[axes[1]]
 
 def mono(data, axes, title=None, events=None, density=None, noise=None, figname=None, savefolder = None):
+    '''Monochrome simple scatter plot (all blue)'''
     indep, dep = translate(axes)
     if title: 
         title = str(title)
@@ -141,7 +146,7 @@ def mono(data, axes, title=None, events=None, density=None, noise=None, figname=
     print(f"Figure saved under {figname}")
     
 def galaxy(data, axes, title=None, events=None, density=None, noise=None, figname=None, savefolder = None):
-
+    '''Black background 2d scatter plot'''
     indep, dep = translate(axes)
     if title: 
         title = str(title)
@@ -166,6 +171,7 @@ def galaxy(data, axes, title=None, events=None, density=None, noise=None, fignam
     plt.savefig(figname)
 
 def colourcoded(data, ai_labels, axes, title=None, events=None, density=None, noise=None, figname=None, savefolder = None):
+    '''colour coded scatter plot based on k-means assigned labels '''
     indep, dep = translate(axes)
     if title: 
         title = str(title)
@@ -213,115 +219,63 @@ def centroidVsource(data, ai_labels, sources, clusters, axes, title=None, events
     plt.tight_layout()
     plt.savefig(figname)
 
-# ## scatter with colour code based on labels 
-# plt.figure()
-# plt.scatter(data[:,2], data[:,1], c = ai_labels, s = 20, cmap='tab20')
-# plt.scatter(sources[:,2], sources[:,1], c = 'black', s= 35, marker='x')
-# plt.title('Time vs Y of 10 events .25 dense true sources', wrap =True)
-# plt.ylabel('Y coordinates (m)')
-# plt.xlabel('Time (s)')
-# #plt.xlabel('X coordinates (m)')
-# plt.savefig('kmeans_v2_10ev_n0_.25dense_time.png')
+def threeD(data, ai_labels, title = None, events = None, density = None, noise = None, figname = None, savefolder = None):
+    '''Will produce a 3D scatter plot with colour codes by AI labels'''
+    if title: 
+        title = str(title)
+    else: 
+        title = f'K-means colour coded 3D scatter plot of {events} events at {density} density and {noise} noise photons'
+    if figname: 
+        figname = str(figname) + 'png'
+    else: 
+        figname = f'3Dscatter_{events}ev_{density}dense_n{noise}.png'
+    
+    if savefolder: 
+        figname = str(savefolder) + '/' + figname
 
-# # scatter comparison of true sources and cluster centroids 
-# plt.figure()
-# plt.scatter(sources[:,2], sources[:,1], c = 'black', s= 35, marker='x')
-# plt.scatter(clusters[:,2], clusters[:,1], c = 'blue', s = 35, marker = 'o')
-# plt.title('Sources vs Cluster centroids for 10 events .25 dense', wrap = True)
-# plt.ylabel('Y coordinates (m)')
-# plt.xlabel('Time (s)')
-# plt.savefig('kmeans_v2_sourcesvscentroids_n0_.25dense_time.png')
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection = '3d')
+    ax.scatter(data[:,2], data[:,0], data[:,1], s = 10, c = ai_labels)
+    ax.set_xlabel('Time (s)')
+    ax.set_ylabel('X coordinates')
+    ax.set_zlabel('Y coordinates')
+    ax.set_title(title)
+    plt.tight_layout()
+    plt.savefig(figname)
 
-
-# scatter 
-# plt.scatter(points[:,2], points[:,1])
-# #plt.scatter(sourcepoints[:,2], sourcepoints[:,1], c='r')
-# plt.title('Y vs time view of 10 events at .5 dense')
-# plt.ylabel('Y coordinates (m)')
-# plt.xlabel('Time (s)')
-# plt.savefig('10ev_.5dense_n0.png')
-
-
-# fix one of the next two plot blocks to produce what im looking for 
-# histogram 
-# plt.hist2d(points[:,0], points[:,1], cmap = 'hot', bins = [255, 255])
-# plt.title('Y vs x view of 20 events')
-# plt.colorbar()
-# plt.ylabel('Y coordinates (m)')
-# plt.xlabel('X coordinates (m)')
-# plt.savefig('20ev_realt_hist.png')
-
-#black background? -> density c
-# plt.figure() 
-# # cbar = plt.colorbar(hist[3], pad=0.01)
-# # cbar.set_label('Density')
-# plt.hist2d(data[:,2], data[:,1], bins = (100,100), cmap='hot')
-# plt.colorbar()
-# plt.xlabel("X coordinates")
-# plt.ylabel("Y coordinates")
-# plt.title("10 events, time vs y view")
-# plt.tight_layout()
-# plt.savefig('10evtest.png')
-
-
-
-# mapmap = points[:,1:3]
-# plt.imshow(points[:, 1:3])
-# plt.title('Heatmap y vs time view of 10 events')
-# plt.ylabel('Y coordinates (m)')
-# plt.xlabel('Time (s)')
-# plt.savefig('20ev_realt_heat.png')
-# #print(mapmap.shape)
-
-# 3D plot 
-# fig = plt.figure()
-# ax = fig.add_subplot(111, projection='3d')
-# ax.scatter(points[:,2], points[:,0], points[:,1], s=10)
-
-# ax.set_xlabel('Time (s)')
-# ax.set_ylabel('X coordinates')
-# ax.set_zlabel('Y coordinates')
-# ax.set_title('3D plot of 10 events .25 density')
-# plt.savefig('3D_10ev_.25dense_n0.png')
-
-
-# misidentified photons 
-# correct, incorrect, correct_labels = mistakes(labels, ai_labels, data)
-
-# plt.figure()
-# plt.scatter(correct[:,0], correct[:,1], c = correct_labels, cmap = 'tab20', s = 10)
-# plt.scatter(incorrect[:,0], incorrect[:,1], c = 'red', s = 10)
-# plt.title('X Y view of (in) correctly identified photons, 10 events, .5 density')
-# plt.ylabel('Y coordinates')
-# plt.xlabel('X coordinates')
-# plt.savefig('misID_xy_10ev_.5dense.png')
-
-# plt.figure()
-# plt.scatter(correct[:,2], correct[:,1], c = correct_labels, cmap = 'tab10', s = 10)
-# plt.scatter(incorrect[:,2], incorrect[:,1], c = 'red', s = 10)
-# plt.title('Time Y view of (in) correctly identified photons, 10 events, .5 density')
-# plt.ylabel('Y coordinates')
-# plt.xlabel('Time coordinates')
-# plt.savefig('misID_ty_10ev_.5dense.png')
-
-# plt.figure()
-# plt.scatter(correct[:,2], correct[:,0], c = correct_labels, cmap = 'tab20', s = 10)
-# plt.scatter(incorrect[:,2], incorrect[:,0], c = 'red', s = 10)
-# plt.title('Time X view of (in) correctly identified photons, 10 events, .5 density')
-# plt.ylabel('X coordinates')
-# plt.xlabel('Time coordinates')
-# plt.savefig('misID_tx_10ev_.5dense.png')
-
-
+def misID(data, axes, ai_labels, labels, title = None, events = None, density = None, noise = None, figname = None, savefolder = None):
+    '''K-means colour coded scatter plot with misidentified photons coloured in red. Combined or split event photons are not included.'''
+    indep, dep = translate(axes)
+    if title: 
+        title = str(title)
+    else: 
+        title = f'Misidentified photons (red) of {events} events at {density} density and {noise} noise photons, {dep} vs {indep}'
+    if figname: 
+        figname = str(figname) + 'png'
+    else: 
+        figname = f'misID_{indep}_vs_{dep}_{events}ev_{density}dense_n{noise}.png'
+    
+    if savefolder: 
+        figname = str(savefolder) + '/' + figname
+    
+    correct, incorrect, correct_labels = mistakes(labels, ai_labels, data)
+    plt.figure()
+    plt.scatter(correct[:,axes[0]], correct[:,axes[1]], c = correct_labels, cmap = 'tab20', s = 20)
+    plt.scatter(incorrect[:,axes[0]], incorrect[:,axes[1]], c = 'red', s = 20)
+    plt.title(title)
+    plt.ylabel(f'{dep} coordinates')
+    plt.xlabel(f'{indep} coordinates')
+    plt.tight_layout()
+    plt.savefig(figname)
 
 def plot(plottype, axes, folder = None, filename = None, title = None, events = None, density = None, noise = None, savefolder=None, figname=None):
     '''This function will plot the data in one of the following formats: 
     0. mono: monochrome scatter plot, no other indicators
     1. galaxy: black background with density based colour gradient
-    2. colourcoded: scatter plot with points coloured based on the ai label
-    3. centroidVsource: scatter plot that shows the cluster centroids vs the source coordinates, colour coded like option 2
+    2. colourcoded (ccd): scatter plot with points coloured based on the ai label
+    3. centroidVsource (cvs): scatter plot that shows the cluster centroids vs the source coordinates, colour coded like option 2
     4. 3D: 3D colour coded plot 
-    5. misidentified: highlights misidentified photons in red 
+    5. misidentified (misID): highlights misidentified photons in red 
     '''
 
     types = ['mono', 'galaxy', 'colourcoded', 'centroidVsource', '3D', 'misidentified']
@@ -339,7 +293,41 @@ def plot(plottype, axes, folder = None, filename = None, title = None, events = 
         mono(data, axes, title, events, density, noise, figname, savefolder)
     elif str(plottype) == 'galaxy': 
         galaxy(data, axes, title, events, density, noise, figname, savefolder)
-    elif str(plottype) == 'colourcoded': 
+    elif str(plottype) == 'ccd': 
         colourcoded(data, ai_labels, axes, title, events, density, noise, figname, savefolder)
-    
-    
+    elif str(plottype) == 'cvs': 
+        centroidVsource(data, ai_labels, sources, clusters, axes, title=None, events=None, density=None, noise=None, figname=None, savefolder = None)
+    elif str(plottype) == '3D': 
+        threeD(data, ai_labels, title = None, events = None, density = None, noise = None, figname = None, savefolder = None)
+    elif str(plottype) == 'misID':
+        misID(data, axes, ai_labels, labels, title = None, events = None, density = None, noise = None, figname = None, savefolder = None)
+    else: 
+        print("Plot type not recognized. Please check and try again. Options are: [mono, galaxy, ccd, cvs, 3D, misID]")
+
+parser = argparse.ArgumentParser(description="Plotting functions!")
+
+subparsers = parser.add_subparsers(dest="command", help = "Available commands")
+
+plt_parser = subparsers.add_parser("plot", help = "Plot data under several formats")
+
+#def plot(plottype, axes, folder = None, filename = None, title = None, events = None, density = None, noise = None, savefolder=None, figname=None):
+
+plt_parser.add_argument("-p", "--plottype", type = str, required = True, help = "Type of plot")
+plt_parser.add_argument("-a", "--axes", type = list, required = True, help = "axes to display in the plot given in [,] format. for 3D plot put anything, the default will be used for this")
+plt_parser.add_argument("-fd", "--folder", type = str, default = None, help = "folder in which the data is saved, needed if the default filename format is being read.")
+plt_parser.add_argument("-fn", "--filename", type = str, default = None, help = "name of the datafile, needed if the default filename format is being read.")
+plt_parser.add_argument("-t", "--title", type = str, default = None, help = "Optional custom title to give the plot")
+plt_parser.add_argument("-e", "--events", type = int, default = None, help = "Number of events in the datafile, needed if default filename format is being read.")
+plt_parser.add_argument("-d", "--density", type = float, default = None, help = "Density of photons in datafile. Needed if default filename is being read.")
+plt_parser.add_argument("-n", "--noise", type = int, default = None, help = "Number of noise photons included in the datafile, needed if default filename is being read")
+plt_parser.add_argument("-sf", "--savefolder", type = str, default = None, help = "Optional folder in which to save the figure")
+plt_parser.add_argument("-fig", "--figname", type = str, default = None, help = "Optional custom name under which to save the figure")
+
+args = parser.parse_args()
+
+# call the function based on subcommand
+if args.command == "plot": 
+    plot(plottype = args.plottype, axes=args.axes, folder = args.folder, filename=args.filename, title=args.title, events=args.events, density=args.density, noise=args.noise, savefolder=args.savefolder, figname=args.figname)
+else:    
+    parser.print_help()
+
