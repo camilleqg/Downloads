@@ -53,69 +53,58 @@ def sizes(indices):
 
     return gaps
 
-def loss(true_labels, network_labels):
-    all_modes =[]
-    event_splits = 0 
-    all_misidentified = [] # array for all fractions of misidentified events 
 
+def truth_based_loss(true_labels, network_labels):
+    # labels are already sorted by true labels predictions 
+
+    # getting break indices and cluster sizes 
     break_indices = breaks(true_labels)
-    gaps = sizes(break_indices) # sizes of each event 
+    gaps = sizes(break_indices)
+    n_events = len(gaps)
 
-    beginning = 0 
-    for i in range(len(gaps)):
-        misidentified=0 # number of misidentified photons per cluster starts at 0
-        end = break_indices[i] # determine where the cluster ends 
-        chunk = network_labels[beginning:end] 
-        chunk_modes = modded_mode(chunk) # find the modes, these are the ai labels given to the cluster, what events are dominant here 
-        all_modes.extend(chunk_modes) # add to master list of modes, this indicates when each event label shows up (how often)
-        if len(chunk_modes) > 1: 
-            event_splits += 1  # add one to a split. if there is more than one ai label in this list, theres a split cluster 
+    # initialize variables 
+    counter = Counter()
+    fractions_misIDs = []
+    total_splits, ev_per_split = 0,0 
+    total_splits = 0 
 
-        chunk_modes_set = chunk_modes # change the list of modes into a set to increase efficiency
-        misidentified = sum(1 for item in chunk if item not in chunk_modes_set) # counts the number of photons not included in the main event labels (modes)
-        err_fraction = misidentified/gaps[i] # calculates the fraction of misidentified over number of photons in the event 
-        all_misidentified.append(err_fraction) # adds the misidentification error to array 
-        beginning = break_indices[i] # adjust the beginning of the next chunk
+
+    # process each chunk that's separated by truth gaps 
+    for start, end, gap in zip([0] + break_indices[:-1], break_indices, gaps)
+        chunk = ai_labels[start:end]
+        chunk_modes = modded_mode(chunk)
+
+        # update counter
+        counter.update(chunk_modes)
+
+        e_in_split = len(chunk_modes) # number of ai events found in the chunk
+        if e_in_split > 1: 
+            total_splits += 1
+            ev_per_split += e_in_split # if there is more than one, increase splits and events in split 
+        
+        misIDs = sum(1 for item in chunk if item not in chunk_modes)
+        fractions_misIDs.append(misIDs/gap)
+
     
-    avg_misidentified = np.average(all_misidentified)
-    counter = Counter(all_modes)
-    unfiltered_counts = dict(counter) # look at how many times each mode or "label" shows up in this list 
-    mode_modes = {item: count for item, count in counter.items() if count > 1} # if it's more than once then an event has been combined 
-    combo_frac = len(mode_modes.values())/len(unfiltered_counts.values())
-    avg_ev_in_combo = sum(mode_modes.values())/len(mode_modes.values())
+    # Combination Statistics 
+    repeat_labels = {k: v for k, v in counter.items() if v>1}
+    total_combos = len(repeat_labels) # the amount of combinations is the same as the amount of labels that get repeated through the set 
+    ev_per_combo = sum(repeat_labels.values())/total_combos if total_combos else 0 # sum all repeats together and average over number of combinations 
+    frac_combos = total_combos / n_events # fraction of events experiencing combination
 
-    print(f"The fraction of misidentified photons in each event is: {all_misidentified}")
-    print(f"the average fraction of misidentified photons is: {avg_misidentified}") 
-    print(f"The total number of event splits is {event_splits}")
-    print(f"The full list of events that were combined is: {mode_modes}, with a fraction of {combo_frac} events being combined. The average number of events involved in a combination is: {avg_ev_in_combo}")
-    # the mode modes here refer to the labels given to the events by the ai, not the true labels (for reference) 
-    return event_splits, all_misidentified, avg_misidentified, mode_modes, combo_frac, avg_ev_in_combo
-    
+    # other stats 
+    ev_per_split = ev_per_split/total_splits if total_splits else 0
+    frac_splits = total_splits/n_events
+    avg_misIDs = np.mean(fractions_misIDs)
 
-def ai_based_loss(true_labels, network_labels):
-    '''This function does the same thing as the previous loss function, but does it in such a way 
-    that the ai labels are ordered and the clustering is based off of these. it should give the same 
-    or similar results to the original loss function'''
-    
-    # initialize master list of dominant true event labels 
-    # initialize number of combinations total (0)
-    # initalize number of events in combinations (0)
-    #
-    # sort the labels based on the network assigned labels 
-    # 
-    # find the breaks in all the ai labels as well as gap sizes 
-    # 
-    # for each chunk: 
-    #   identify the dominant true event labels
-    #   add them to a master list 
-    #   combination: note if there are multiple dominant event labels 
-    #       if there are multiple, add this to number of combinations
-    #       add the number of events involved in the combination (length of list of dominant labels)
-    #       to total (will be averaged out later)
+    # output da resultssss
+    print(f"The fraction of splits over all events is {frac_splits}")
+    print(f"The average number of events involved in a single split is {ev_per_split}")
+    print(f"The fraction of combinations over all events is {frac_combos}")
+    print(f"The average number of events involved in a single combo is {ev_per_combo}")
+    print(f"The average number of photons misidentified in each event is {avg_misIDs}")
 
-    #   misidentified photons: note what fraction of labels do not match any of the dominant labels 
-    #   
-    #   split events: check for repeats in the 
+    return frac_splits, ev_per_split, frac_combos, ev_per_combo, avg_misIDs
 
 def labelmaker(events, density, noise, folder = None): 
     folder = folder + '/'
@@ -159,4 +148,4 @@ def readfiles(events, density, noise, folder = None):
 
 data, labels, sources, ai_labels, clusters = readfiles(10, '.25', 0, '10events')
 
-loss(labels, ai_labels)
+truth_based_loss(labels, ai_labels)
