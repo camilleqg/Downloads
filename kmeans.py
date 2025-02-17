@@ -33,6 +33,7 @@ def labelmaker(events, density, noise, filename = None, folder = None):
     else: 
         datafile = str(events) + 'ev_' + str(density) + 'dense_n' + str(noise)
     
+    datafile = datafile + '.csv'
     labelfile = 'labels_' + datafile + '.csv'
     sourcefile = 'sources_' + datafile + '.csv'
     ai_labelfile = datafile + '_results' + '.csv'
@@ -44,7 +45,7 @@ def labelmaker(events, density, noise, filename = None, folder = None):
         ai_labelfile = folder + ai_labelfile 
         labelfile = folder + labelfile 
         sourcefile = folder + sourcefile 
-
+    
     return datafile, labelfile, sourcefile, ai_labelfile, centroidfile
 
 def readfiles(datafile, labelfile, sourcefile): 

@@ -106,26 +106,47 @@ def truth_based_loss(true_labels, network_labels):
 
     return frac_splits, ev_per_split, frac_combos, ev_per_combo, avg_misIDs
 
-def labelmaker(events, density, noise, folder = None): 
-    folder = folder + '/'
+def labelmaker(events, density, noise, filename = None, folder = None): 
+    '''creates labels based on my naming convention for different files, keeps it consistent and easy'''
+    if folder: 
+        folder = folder + '/'
 
-    datafile = str(events) + 'ev_' + str(density) + 'dense_n' + str(noise) + '.csv'
-    clusterfile = str(events) + 'ev_' + str(density) + 'dense_n' + str(noise) + '_centroids' + '.csv'
-    ai_labelfile = str(events) + 'ev_' + str(density) + 'dense_n' + str(noise) + '_results' + '.csv'
-    labelfile = 'labels_' + str(events) + 'ev_' + str(density) + 'dense_n' + str(noise) + '.csv'
-    sourcefile = 'sources_' + str(events) + 'ev_' + str(density) + 'dense_n' + str(noise) + '.csv'
+    if filename: 
+        datafile = str(filename) 
+    else: 
+        datafile = str(events) + 'ev_' + str(density) + 'dense_n' + str(noise)
+    
+    datafile = datafile + '.csv'
+    labelfile = 'labels_' + datafile + '.csv'
+    sourcefile = 'sources_' + datafile + '.csv'
+    ai_labelfile = datafile + '_results' + '.csv'
+    centroidfile = datafile + '_centroids' + '.csv'
 
     if folder: 
-        datafile = str(folder)+ datafile
-        clusterfile = str(folder) + clusterfile 
-        ai_labelfile = str(folder) + ai_labelfile
-        labelfile = str(folder) + labelfile 
-        sourcefile = str(folder) + sourcefile 
+        datafile = folder + datafile 
+        centroidfile = folder + centroidfile 
+        ai_labelfile = folder + ai_labelfile 
+        labelfile = folder + labelfile 
+        sourcefile = folder + sourcefile 
     
-    return datafile, labelfile, sourcefile, ai_labelfile, clusterfile
+    return datafile, labelfile, sourcefile, ai_labelfile, centroidfile
+def readfiles(datafile, labelfile, sourcefile): 
+    '''data reader and simplifier for files that haven't been passed through the algorithm'''
+    columns = ['x[px]', 'y[px]', 't[s]']
+    
+    dataread = pd.read_csv(datafile) 
+    data = np.array(dataread[columns])
+    
+    labelread = pd.read_csv(labelfile)
+    labels = np.array(labelread['labels'])
 
-def readfiles(events, density, noise, folder = None): 
-    datafile, labelfile, sourcefile, ai_labelfile, clusterfile = labelmaker(events, density, noise, folder)
+    sourceread = pd.read_csv(sourcefile) 
+    sources = np.array(sourceread[columns])
+
+    return data, labels, sources
+
+def readai(datafile, labelfile, sourcefile, ai_labelfile, centroidfile):
+    '''file reader and data simplifier for data thats been through the algorithm'''
     columns = ['x[px]', 'y[px]', 't[s]']
     
     dataread = pd.read_csv(datafile) 
@@ -140,10 +161,10 @@ def readfiles(events, density, noise, folder = None):
     ai_labelsread = pd.read_csv(ai_labelfile)
     ai_labels = np.array(ai_labelsread['labels'])
 
-    clusterread = pd.read_csv(clusterfile) 
-    clusters = np.array(clusterread[columns])
+    centroidread = pd.read_csv(centroidfile) 
+    centroids = np.array(centroidread[columns])
 
-    return data, labels, sources, ai_labels, clusters
+    return data, labels, sources, ai_labels, centroids
 
 
 data, labels, sources, ai_labels, clusters = readfiles(10, '.25', 0, '10events')
