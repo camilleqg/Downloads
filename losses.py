@@ -70,7 +70,7 @@ def truth_based_loss(true_labels, network_labels):
 
 
     # process each chunk that's separated by truth gaps 
-    for start, end, gap in zip([0] + break_indices[:-1], break_indices, gaps)
+    for start, end, gap in zip([0] + break_indices[:-1], break_indices, gaps):
         chunk = ai_labels[start:end]
         chunk_modes = modded_mode(chunk)
 
