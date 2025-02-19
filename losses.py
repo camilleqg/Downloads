@@ -54,7 +54,7 @@ def sizes(indices):
     return gaps
 
 
-def truth_based_loss(true_labels, network_labels):
+def truth_based_loss(true_labels, ai_labels):
     # labels are already sorted by true labels predictions 
 
     # getting break indices and cluster sizes 
@@ -67,6 +67,7 @@ def truth_based_loss(true_labels, network_labels):
     fractions_misIDs = []
     total_splits, ev_per_split = 0,0 
     total_splits = 0 
+    total_misIDs = 0 
 
 
     # process each chunk that's separated by truth gaps 
@@ -76,28 +77,89 @@ def truth_based_loss(true_labels, network_labels):
 
         # update counter
         counter.update(chunk_modes)
-
+    
         e_in_split = len(chunk_modes) # number of ai events found in the chunk
         if e_in_split > 1: 
             total_splits += 1
             ev_per_split += e_in_split # if there is more than one, increase splits and events in split 
         
         misIDs = sum(1 for item in chunk if item not in chunk_modes)
+        total_misIDs += misIDs
         fractions_misIDs.append(misIDs/gap)
-
     
     # Combination Statistics 
     repeat_labels = {k: v for k, v in counter.items() if v>1}
     total_combos = len(repeat_labels) # the amount of combinations is the same as the amount of labels that get repeated through the set 
     ev_per_combo = sum(repeat_labels.values())/total_combos if total_combos else 0 # sum all repeats together and average over number of combinations 
     frac_combos = total_combos / n_events # fraction of events experiencing combination
-
+    
     # other stats 
     ev_per_split = ev_per_split/total_splits if total_splits else 0
     frac_splits = total_splits/n_events
     avg_misIDs = np.mean(fractions_misIDs)
 
     # output da resultssss
+    print(f"The fraction of splits over all events is {frac_splits}")
+    print(f"The average number of events involved in a single split is {ev_per_split}")
+    print(f"The fraction of combinations over all events is {frac_combos}")
+    print(f"The average number of events involved in a single combo is {ev_per_combo}")
+    print(f"The average number of photons misidentified in each event is {avg_misIDs}")
+
+    return frac_splits, ev_per_split, frac_combos, ev_per_combo, avg_misIDs
+
+def ai_based_loss(true_labels, network_labels):
+    """
+    More efficient implementation of the AI-based loss function.
+    This function clusters AI labels and calculates relevant loss statistics.
+    """
+    
+    # Sort labels based on AI predictions
+    sorted_pairs = sorted(zip(network_labels, true_labels))
+    reo_network_labels, reo_true_labels = zip(*sorted_pairs)
+
+    # Get break indices and cluster sizes
+    break_indices = breaks(reo_network_labels)
+    gaps = sizes(break_indices)
+    # n_events = len(gaps)
+
+    # Initialize variables
+    counter = Counter()
+    fractions_misIDs = []
+    total_combos, ev_per_combo = 0, 0
+    total_splits = 0
+    total_misIDs = 0 
+
+    # Process each AI-clustered chunk
+    for start, end, gap in zip([0] + break_indices[:-1], break_indices, gaps):
+        chunk = reo_true_labels[start:end]
+        chunk_modes = modded_mode(chunk)  # Get dominant modes (max 3)
+        
+        # Update Counter directly  
+        counter.update(chunk_modes)
+
+        e_in_combo = len(chunk_modes)
+        if e_in_combo > 1:
+            total_combos += 1
+            ev_per_combo += e_in_combo
+        
+        misIDs = sum(1 for item in chunk if item not in chunk_modes)
+        total_misIDs += misIDs
+        fractions_misIDs.append(misIDs / gap)
+    
+    n_events = len(counter)
+    # Compute split statistics
+    repeat_labels = {k: v for k, v in counter.items() if v > 1}
+    total_splits = len(repeat_labels)
+    ev_per_split = sum(repeat_labels.values()) / total_splits if total_splits else 0
+    frac_splits = total_splits / n_events
+
+    # Compute final metrics
+    ev_per_combo = ev_per_combo / total_combos if total_combos else 0
+    frac_combos = total_combos / n_events
+    avg_misIDs = np.mean(fractions_misIDs)
+
+
+    # Output results
     print(f"The fraction of splits over all events is {frac_splits}")
     print(f"The average number of events involved in a single split is {ev_per_split}")
     print(f"The fraction of combinations over all events is {frac_combos}")
@@ -116,11 +178,12 @@ def labelmaker(events, density, noise, filename = None, folder = None):
     else: 
         datafile = str(events) + 'ev_' + str(density) + 'dense_n' + str(noise)
     
-    datafile = datafile + '.csv'
+
     labelfile = 'labels_' + datafile + '.csv'
     sourcefile = 'sources_' + datafile + '.csv'
     ai_labelfile = datafile + '_results' + '.csv'
     centroidfile = datafile + '_centroids' + '.csv'
+    datafile = datafile + '.csv'
 
     if folder: 
         datafile = folder + datafile 
@@ -128,8 +191,10 @@ def labelmaker(events, density, noise, filename = None, folder = None):
         ai_labelfile = folder + ai_labelfile 
         labelfile = folder + labelfile 
         sourcefile = folder + sourcefile 
+
     
     return datafile, labelfile, sourcefile, ai_labelfile, centroidfile
+
 def readfiles(datafile, labelfile, sourcefile): 
     '''data reader and simplifier for files that haven't been passed through the algorithm'''
     columns = ['x[px]', 'y[px]', 't[s]']
