@@ -168,7 +168,7 @@ def ai_based_loss(true_labels, network_labels):
 
     return frac_splits, ev_per_split, frac_combos, ev_per_combo, avg_misIDs
 
-def labelmaker(events, density, noise, filename = None, folder = None): 
+def labelmaker(events, sp_density, t_density, noise, filename = None, folder = None): 
     '''creates labels based on my naming convention for different files, keeps it consistent and easy'''
     if folder: 
         folder = folder + '/'
@@ -176,7 +176,7 @@ def labelmaker(events, density, noise, filename = None, folder = None):
     if filename: 
         datafile = str(filename) 
     else: 
-        datafile = str(events) + 'ev_' + str(density) + 'dense_n' + str(noise)
+        datafile = str(events) + 'ev_' + str(sp_density) + 'spd_' + str(t_density) + 'td_n' + str(noise)
     
 
     labelfile = 'labels_' + datafile + '.csv'

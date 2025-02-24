@@ -23,7 +23,7 @@ def kmeans_gpu(data, k, max_iters=100):
 
 device = "cuda" if torch.cuda.is_available() else "cpu" 
 
-def labelmaker(events, density, noise, filename = None, folder = None): 
+def labelmaker(events, sp_density, t_density, noise, filename = None, folder = None): 
     '''creates labels based on my naming convention for different files, keeps it consistent and easy'''
     if folder: 
         folder = folder + '/'
@@ -31,13 +31,14 @@ def labelmaker(events, density, noise, filename = None, folder = None):
     if filename: 
         datafile = str(filename) 
     else: 
-        datafile = str(events) + 'ev_' + str(density) + 'dense_n' + str(noise)
+        datafile = str(events) + 'ev_' + str(sp_density) + 'spd_' + str(t_density) + 'td_n' + str(noise)
     
-    datafile = datafile + '.csv'
+
     labelfile = 'labels_' + datafile + '.csv'
     sourcefile = 'sources_' + datafile + '.csv'
     ai_labelfile = datafile + '_results' + '.csv'
     centroidfile = datafile + '_centroids' + '.csv'
+    datafile = datafile + '.csv'
 
     if folder: 
         datafile = folder + datafile 
@@ -45,6 +46,7 @@ def labelmaker(events, density, noise, filename = None, folder = None):
         ai_labelfile = folder + ai_labelfile 
         labelfile = folder + labelfile 
         sourcefile = folder + sourcefile 
+
     
     return datafile, labelfile, sourcefile, ai_labelfile, centroidfile
 

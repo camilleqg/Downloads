@@ -7,7 +7,7 @@ from scipy.stats import gaussian_kde
 from collections import Counter 
 import argparse
 
-def labelmaker(events, density, noise, filename = None, folder = None): 
+def labelmaker(events, sp_density, t_density, noise, filename = None, folder = None): 
     '''creates labels based on my naming convention for different files, keeps it consistent and easy'''
     if folder: 
         folder = folder + '/'
@@ -15,21 +15,24 @@ def labelmaker(events, density, noise, filename = None, folder = None):
     if filename: 
         datafile = str(filename) 
     else: 
-        datafile = str(events) + 'ev_' + str(density) + 'dense_n' + str(noise)
+        datafile = str(events) + 'ev_' + str(sp_density) + 'spd_' + str(t_density) + 'td_n' + str(noise)
     
+
     labelfile = 'labels_' + datafile + '.csv'
     sourcefile = 'sources_' + datafile + '.csv'
     ai_labelfile = datafile + '_results' + '.csv'
-    clusterfile = datafile + '_centroids' + '.csv'
+    centroidfile = datafile + '_centroids' + '.csv'
+    datafile = datafile + '.csv'
 
     if folder: 
         datafile = folder + datafile 
-        clusterfile = folder + clusterfile 
+        centroidfile = folder + centroidfile 
         ai_labelfile = folder + ai_labelfile 
         labelfile = folder + labelfile 
         sourcefile = folder + sourcefile 
 
-    return datafile, labelfile, sourcefile, ai_labelfile, clusterfile
+    
+    return datafile, labelfile, sourcefile, ai_labelfile, centroidfile
 
 def readfiles(datafile, labelfile, sourcefile): 
     '''data reader and simplifier for files that haven't been passed through the algorithm'''
@@ -119,18 +122,18 @@ def translate(axes):
 
     return coords[axes[0]], coords[axes[1]]
 
-def mono(data, axes, title=None, events=None, density=None, noise=None, figname=None, savefolder = None):
+def mono(data, axes, title=None, events=None, sp_density=None, t_density = None, noise=None, figname=None, savefolder = None):
     '''Monochrome simple scatter plot (all blue)'''
     indep, dep = translate(axes)
     if title: 
         title = str(title)
     else: 
-        title = f'Monochrome scatterplot of {events} events at {density} density and {noise} noise photons, {dep} vs {indep}'
+        title = f'Monochrome scatterplot of {events} events at {sp_density} spatial density, {t_density} temporal density and {noise} noise photons, {dep} vs {indep}'
 
     if figname: 
-        figname = str(figname) + 'png'
+        figname = str(figname)
     else: 
-        figname = f'mono_{indep}_vs_{dep}_{events}ev_{density}dense_n{noise}.png'
+        figname = f'mono_{indep}_vs_{dep}_{events}ev_{sp_density}spd_{t_density}td_n{noise}'
     
     if savefolder: 
         figname = str(savefolder) + '/' + figname 
@@ -144,19 +147,19 @@ def mono(data, axes, title=None, events=None, density=None, noise=None, figname=
     plt.savefig(figname)
 
     print(f"Figure saved under {figname}")
-    
-def galaxy(data, axes, title=None, events=None, density=None, noise=None, figname=None, savefolder = None):
+
+def galaxy(data, axes, title=None, events=None, sp_density=None, t_density = None, noise=None, figname=None, savefolder = None):
     '''Black background 2d scatter plot'''
     indep, dep = translate(axes)
     if title: 
         title = str(title)
     else: 
-        title = f'Galaxy map of {events} events at {density} density and {noise} noise photons, {dep} vs {indep}'
+        title = f'Galaxy map of {events} events at {sp_density} density, {t_density} temporal density, and {noise} noise photons, {dep} vs {indep}'
 
     if figname: 
         figname = str(figname) + 'png'
     else: 
-        figname = f'galaxy_{indep}_vs_{dep}_{events}ev_{density}dense_n{noise}.png'
+        figname = f'galaxy_{indep}_vs_{dep}_{events}ev_{sp_density}spd_{t_density}td_n{noise}.png'
     
     if savefolder: 
         figname = str(savefolder) + '/' + figname
@@ -170,17 +173,17 @@ def galaxy(data, axes, title=None, events=None, density=None, noise=None, fignam
     plt.xlabel(f'{indep} coordinates')
     plt.savefig(figname)
 
-def colourcoded(data, ai_labels, axes, title=None, events=None, density=None, noise=None, figname=None, savefolder = None):
+def colourcoded(data, ai_labels, axes, title=None, events=None, sp_density = None, t_density = None, noise=None, figname=None, savefolder = None):
     '''colour coded scatter plot based on k-means assigned labels '''
     indep, dep = translate(axes)
     if title: 
         title = str(title)
     else: 
-        title = f'K-means colour coded scatter plot of {events} events at {density} density and {noise} noise photons, {dep} vs {indep}'
+        title = f'K-means colour coded scatter plot of {events} events at {sp_density} spatial density, {t_density} temporal density, and {noise} noise photons, {dep} vs {indep}'
     if figname: 
         figname = str(figname) + 'png'
     else: 
-        figname = f'colourcode_{indep}_vs_{dep}_{events}ev_{density}dense_n{noise}.png'
+        figname = f'colourcode_{indep}_vs_{dep}_{events}ev_{sp_density}spd_{t_density}td_n{noise}.png'
     
     if savefolder: 
         figname = str(savefolder) + '/' + figname
@@ -193,17 +196,17 @@ def colourcoded(data, ai_labels, axes, title=None, events=None, density=None, no
     plt.xlabel(f'{indep} coordinates')
     plt.savefig(figname)
 
-def centroidVsource(data, ai_labels, sources, clusters, axes, title=None, events=None, density=None, noise=None, figname=None, savefolder = None):
+def centroidVsource(data, ai_labels, sources, clusters, axes, title=None, events=None, sp_density = None, t_density = None, noise=None, figname=None, savefolder = None):
     '''Just like colourcoded but with the true sources and ai cluster centroids compared'''
     indep, dep = translate(axes)
     if title: 
         title = str(title)
     else: 
-        title = f'K-means colour coded scatter plot with true sources and cluster centroids of {events} events at {density} density and {noise} noise photons, {dep} vs {indep}'
+        title = f'K-means colour coded scatter plot with true sources and cluster centroids of {events} events at {sp_density} spatial density, {t_density} temporal density, and {noise} noise photons, {dep} vs {indep}'
     if figname: 
         figname = str(figname) + 'png'
     else: 
-        figname = f'centroidVsource_{indep}_vs_{dep}_{events}ev_{density}dense_n{noise}.png'
+        figname = f'centroidVsource_{indep}_vs_{dep}_{events}ev_{sp_density}spd_{t_density}td_n{noise}.png'
     
     if savefolder: 
         figname = str(savefolder) + '/' + figname
@@ -219,16 +222,16 @@ def centroidVsource(data, ai_labels, sources, clusters, axes, title=None, events
     plt.tight_layout()
     plt.savefig(figname)
 
-def threeD(data, ai_labels, title = None, events = None, density = None, noise = None, figname = None, savefolder = None):
+def threeD(data, ai_labels, title = None, events = None, sp_density = None, t_density = None, noise = None, figname = None, savefolder = None):
     '''Will produce a 3D scatter plot with colour codes by AI labels'''
     if title: 
         title = str(title)
     else: 
-        title = f'K-means colour coded 3D scatter plot of {events} events at {density} density and {noise} noise photons'
+        title = f'K-means colour coded 3D scatter plot of {events} events at {sp_density} spatial density, {t_density} temporal density and {noise} noise photons'
     if figname: 
         figname = str(figname) + 'png'
     else: 
-        figname = f'3Dscatter_{events}ev_{density}dense_n{noise}.png'
+        figname = f'3Dscatter_{events}ev_{sp_density}spd_{t_density}td_n{noise}.png'
     
     if savefolder: 
         figname = str(savefolder) + '/' + figname
@@ -243,17 +246,17 @@ def threeD(data, ai_labels, title = None, events = None, density = None, noise =
     plt.tight_layout()
     plt.savefig(figname)
 
-def misID(data, axes, ai_labels, labels, title = None, events = None, density = None, noise = None, figname = None, savefolder = None):
+def misID(data, axes, ai_labels, labels, title = None, events = None, sp_density = None, t_density = None, noise = None, figname = None, savefolder = None):
     '''K-means colour coded scatter plot with misidentified photons coloured in red. Combined or split event photons are not included.'''
     indep, dep = translate(axes)
     if title: 
         title = str(title)
     else: 
-        title = f'Misidentified photons (red) of {events} events at {density} density and {noise} noise photons, {dep} vs {indep}'
+        title = f'Misidentified photons (red) of {events} events at {sp_density} spatial density, {t_density} temporal density and {noise} noise photons, {dep} vs {indep}'
     if figname: 
         figname = str(figname) + 'png'
     else: 
-        figname = f'misID_{indep}_vs_{dep}_{events}ev_{density}dense_n{noise}.png'
+        figname = f'misID_{indep}_vs_{dep}_{events}ev_{sp_density}spd_{t_density}td_n{noise}.png'
     
     if savefolder: 
         figname = str(savefolder) + '/' + figname
@@ -268,7 +271,7 @@ def misID(data, axes, ai_labels, labels, title = None, events = None, density = 
     plt.tight_layout()
     plt.savefig(figname)
 
-def plot(plottype, axes, folder = None, filename = None, title = None, events = None, density = None, noise = None, savefolder=None, figname=None):
+def plot(plottype, axes, folder = None, filename = None, title = None, events = None, sp_density = None, t_density = None, noise = None, savefolder=None, figname=None):
     '''This function will plot the data in one of the following formats: 
     0. mono: monochrome scatter plot, no other indicators
     1. galaxy: black background with density based colour gradient
@@ -281,26 +284,26 @@ def plot(plottype, axes, folder = None, filename = None, title = None, events = 
     types = ['mono', 'galaxy', 'colourcoded', 'centroidVsource', '3D', 'misidentified']
 
     # generate datafile name 
-    datafile, labelfile, sourcefile, ai_labelfile, clusterfile = labelmaker(events, density, noise, filename, folder) 
+    datafile, labelfile, sourcefile, ai_labelfile, clusterfile = labelmaker(events, sp_density, t_density, noise, filename, folder) 
     # should only read the data that it needs 
-    val = types[str(plottype)]
+    val = types.index(str(plottype))
     if val > 1: 
         data, labels, sources, ai_labels, clusters = readai(datafile, labelfile, sourcefile, ai_labelfile, clusterfile)
     else: 
         data, labels, sources = readfiles(datafile, labelfile, sourcefile)
     
     if str(plottype) == 'mono': 
-        mono(data, axes, title, events, density, noise, figname, savefolder)
+        mono(data, axes, title, events, sp_density, t_density, noise, figname, savefolder)
     elif str(plottype) == 'galaxy': 
-        galaxy(data, axes, title, events, density, noise, figname, savefolder)
+        galaxy(data, axes, title, events, sp_density, t_density, noise, figname, savefolder)
     elif str(plottype) == 'ccd': 
-        colourcoded(data, ai_labels, axes, title, events, density, noise, figname, savefolder)
+        colourcoded(data, ai_labels, axes, title, events, sp_density, t_density, noise, figname, savefolder)
     elif str(plottype) == 'cvs': 
-        centroidVsource(data, ai_labels, sources, clusters, axes, title=None, events=None, density=None, noise=None, figname=None, savefolder = None)
+        centroidVsource(data, ai_labels, sources, clusters, axes, title=None, events=None, sp_density=None, t_density=None, noise=None, figname=None, savefolder = None)
     elif str(plottype) == '3D': 
-        threeD(data, ai_labels, title = None, events = None, density = None, noise = None, figname = None, savefolder = None)
+        threeD(data, ai_labels, title = None, events = None, sp_density=None, t_density=None, noise = None, figname = None, savefolder = None)
     elif str(plottype) == 'misID':
-        misID(data, axes, ai_labels, labels, title = None, events = None, density = None, noise = None, figname = None, savefolder = None)
+        misID(data, axes, ai_labels, labels, title = None, events = None, sp_density=None, t_density=None, noise = None, figname = None, savefolder = None)
     else: 
         print("Plot type not recognized. Please check and try again. Options are: [mono, galaxy, ccd, cvs, 3D, misID]")
 
@@ -310,7 +313,7 @@ subparsers = parser.add_subparsers(dest="command", help = "Available commands")
 
 plt_parser = subparsers.add_parser("plot", help = "Plot data under several formats")
 
-#def plot(plottype, axes, folder = None, filename = None, title = None, events = None, density = None, noise = None, savefolder=None, figname=None):
+plot('mono', [1,2], events = 10, density = '1', noise = 0, figname = 'test1')
 
 plt_parser.add_argument("-p", "--plottype", type = str, required = True, help = "Type of plot")
 plt_parser.add_argument("-a", "--axes", type = list, required = True, help = "axes to display in the plot given in [,] format. for 3D plot put anything, the default will be used for this")
@@ -318,7 +321,8 @@ plt_parser.add_argument("-fd", "--folder", type = str, default = None, help = "f
 plt_parser.add_argument("-fn", "--filename", type = str, default = None, help = "name of the datafile, needed if the default filename format is being read.")
 plt_parser.add_argument("-t", "--title", type = str, default = None, help = "Optional custom title to give the plot")
 plt_parser.add_argument("-e", "--events", type = int, default = None, help = "Number of events in the datafile, needed if default filename format is being read.")
-plt_parser.add_argument("-d", "--density", type = float, default = None, help = "Density of photons in datafile. Needed if default filename is being read.")
+plt_parser.add_argument("-spd", "--spacedensity", type = float, default = None, help = "Spatial density of photons in datafile. Needed if default filename is being read.")
+plt_parser.add_argument("-td", "--timedensity", type = float, default = None, help = "")
 plt_parser.add_argument("-n", "--noise", type = int, default = None, help = "Number of noise photons included in the datafile, needed if default filename is being read")
 plt_parser.add_argument("-sf", "--savefolder", type = str, default = None, help = "Optional folder in which to save the figure")
 plt_parser.add_argument("-fig", "--figname", type = str, default = None, help = "Optional custom name under which to save the figure")
@@ -330,4 +334,3 @@ if args.command == "plot":
     plot(plottype = args.plottype, axes=args.axes, folder = args.folder, filename=args.filename, title=args.title, events=args.events, density=args.density, noise=args.noise, savefolder=args.savefolder, figname=args.figname)
 else:    
     parser.print_help()
-
